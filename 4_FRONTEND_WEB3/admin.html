@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>  
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — MeDossier Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root{
+      --blue:#0d6efd;
+      --muted:#f5f7fa;
+      --card-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+    body{
+      background:var(--muted);
+      font-family: "Segoe UI",sans-serif;
+    }
+    .sidebar {
+      width:240px;
+      position:fixed;
+      left:0;
+      top:0;
+      bottom:0;
+      background: #fff;
+      border-right:1px solid #eee;
+      padding:20px;
+    }
+    .brand {font-weight:700; color:var(--blue); font-size:1.1rem;}
+    .sidebar .nav-link {
+      color:#444;
+      padding:10px 12px;
+      border-radius:5px;
+      margin-bottom:5px;
+      transition: all 0.2s;
+    }
+    .sidebar .nav-link.active, .sidebar .nav-link:hover {
+      background: var(--blue);
+      color: #fff !important;
+      font-weight:600;
+    }
+    .content {margin-left:260px; padding:24px;}
+    .stat-card {
+      border-radius: 15px;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+    }
+    .section-content {display:none; padding:20px 0;}
+    .section-content.active-section {display:block; animation: fadeIn 0.4s;}
+    @keyframes fadeIn { from {opacity:0; transform: translateY(10px);} to {opacity:1; transform: translateY(0);} }
+    .table-wrapper {
+      background:#fff;
+      padding:18px;
+      border-radius:12px;
+      box-shadow: var(--card-shadow);
+    }
+    .table-wrapper table tbody tr:hover {background:#f1faff;}
+
+    .loader {display:none; position:fixed; right:20px; top:80px; z-index:2000;}
+    .small-muted{font-size:0.85rem;color:#666;}
+    @media (max-width:768px){
+      .sidebar {width:100%; position:relative;}
+      .content {margin-left:0;}
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar d-flex flex-column">
+    <div class="mb-4">
+      <div class="brand">SecureRecords — Admin</div>
+      <div class="small-muted mt-1">Gestion centralisée</div>
+    </div>
+    <nav class="nav flex-column">
+      <a class="nav-link active" href="#" data-section="dashboard-section">Dashboard</a>
+      <a class="nav-link" href="#" data-section="doctors-management-section">👨‍⚕️ Docteurs</a>
+      <a class="nav-link" href="#" data-section="logs-section">📜 Logs</a>
+      <a class="nav-link" href="#" data-section="parametres-section">⚙️ Paramètres</a>
+      <hr>
+      <div class="small-muted">Admin wallet:</div>
+      <code id="adminWallet" class="small text-truncate" style="max-width:200px;display:block"></code>
+      <button id="btnLogout" class="btn btn-sm btn-outline-secondary mt-2">Logout</button>
+    </nav>
+  </aside>
+  <main class="content">
+    <div id="loader" class="loader">
+      <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+    </div>
+    <div id="dashboard-section" class="section-content active-section">
+      <h2>Dashboard</h2>
+      <div class="row g-3 mt-3">
+        <div class="col-md-3 col-sm-6">
+          <div class="card stat-card p-3 text-center shadow-sm">
+            <div class="small-muted">Total Docteurs</div>
+            <h3 id="statDoctors">0</h3>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="card stat-card p-3 text-center shadow-sm">
+            <div class="small-muted">Total Patients</div>
+            <h3 id="statPatients">0</h3>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="card stat-card p-3 text-center shadow-sm ">
+            <div class="small-muted">Dossiers (hashes)</div>
+            <h3 id="statDossiers">0</h3>
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <div class="card stat-card p-3 text-center shadow-sm ">
+            <div class="small-muted">Cas Potentiellement Critiques*</div>
+            <h3 id="statCritical">0</h3>
+          </div>
+        </div>
+      </div>
+    <h4 class="mt-4 mb-3"> Indicateurs de Performance (KPIs)</h4>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card p-3 text-center shadow-sm border-left-success">
+                <div class="small-muted">Docteurs Non-Autorisés</div>
+                <h3 id="statUnauthorizedDoctors">0</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 text-center shadow-sm border-left-info">
+                <div class="small-muted">Délai Moyen de Mise à Jour</div>
+                <h3 id="statAvgUpdateDelay">--</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-3 text-center shadow-sm border-left-warning">
+                <div class="small-muted">Statut IPFS</div>
+                <h3 id="statIpfsStatus"><span class="badge bg-secondary">Vérification...</span></h3>
+            </div>
+        </div>
+    </div>
+    <h4 class="mt-5 mb-3">Analyse et Activité</h4>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card p-4 shadow-sm">
+                <h5> Distribution des Docteurs par Sexe</h5>
+                <canvas id="doctorSexChart" style="max-height: 232px;"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card p-4 shadow-sm">
+                <h5>Mouvement des Enregistrements (7 derniers jours)</h5>
+                <canvas id="hashMovementChart" style="max-height: 950px;"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-lg-12 mt-4">
+            <div class="card p-4 shadow-sm">
+                <h5>Derniers Événements du Contrat (5 dernières actions)</h5>
+                <ul id="contractEventsList" class="list-group list-group-flush">
+                    <li class="list-group-item text-muted">... Chargement des événements ...</li>
+                </ul>
+                <div class="mt-3">
+                    <small>Statut Blockchain: <span id="statBlockchainStatus" class="badge bg-secondary">Vérification...</span></small>
+                </div>
+            </div>
+        </div>
+    </div>  
+      <small class="text-muted mt-3 d-block">* Cas potentiellement critiques = patients avec dossier (CID) existant (approx.)</small>
+    </div>
+    <div id="doctors-management-section" class="section-content">
+      <h2 class="mb-4">Gestion des Docteurs</h2>
+<div class="card shadow-sm mb-5 p-4">
+    <h4 class="card-title">Ajouter un Docteur</h4>
+    <hr>
+    <div class="row g-3">       
+        <div class="col-md-3">
+            <label for="docId" class="form-label">ID Docteur</label>
+            <input type="text" class="form-control" id="docId" placeholder="ex: kh948723">
+        </div>
+        <div class="col-md-5">
+            <label for="docName" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="docName" placeholder="Dr.said...">
+        </div>        
+        <div class="col-md-4">
+            <label for="docSpecialty" class="form-label">Spécialité</label>
+            <input type="text" class="form-control" id="docSpecialty" value="Cardiologie" disabled>
+        </div>       
+        <div class="col-md-4">
+            <label for="docAge" class="form-label">Âge</label>
+            <input type="number" class="form-control" id="docAge" value="40" min="25" max="65">
+        </div>
+        <div class="col-md-4">
+            <label for="docSex" class="form-label">Sexe</label>
+            <select id="docSex" class="form-select">
+                <option selected>Homme</option>
+                <option>Femme</option>
+            </select>
+        </div>
+    </div>
+    <div class="row g-3 mt-3">
+        <div class="col-12">
+            <label for="docAddress" class="form-label">Adresse MetaMask du Docteur</label>
+            <input type="text" class="form-control" id="docAddress" placeholder="0x123...">
+        </div>
+    </div>   
+    <div class="mt-4 d-flex justify-content-end">
+        <button type="button" class="btn btn-secondary me-2" id="btnResetDoctor">Réinitialiser</button>
+        <button type="button" class="btn btn-primary" id="btnAddDoctor">Ajouter Docteur</button>
+    </div>
+</div>
+<div class="card shadow-sm p-4">
+    <h4 class="card-title">Liste des Docteurs enregistrés</h4>
+    <hr>
+    <div class="mb-3">
+        <input type="text" class="form-control" id="searchDoctor" placeholder="Rechercher un docteur (nom, wallet, ID...)">
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover" id="doctorsTable">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Spécialité</th>
+                    <th>Âge</th>
+                    <th>Sexe</th>
+                    <th>Autorisation</th>
+                    <th>Wallet</th> 
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+</div>
+    </div>
+    <div id="logs-section" class="section-content">
+    <h2 class="mb-4">Journal d'Activité des Docteurs</h2> 
+    <div class="card shadow-sm p-4">     
+        <h4 class="card-title">Opérations des Docteurs sur les Dossiers des Patients</h4>
+        <hr>    
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="eventsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Type d'Événement</th>
+                        <th>Description</th>
+                        <th>Bloc #</th>
+                        <th>Hash de Transaction</th>
+                    </tr>
+                </thead>
+                <tbody id="eventsTableBody">
+                    </tbody>
+            </table>
+        </div> 
+        <p class="mt-3 text-muted small">
+            * Ce tableau affiche les activités récentes des médecins sur les dossiers (Ajout/Mise à jour).
+        </p>
+    </div>
+</div>
+    <div id="parametres-section" class="section-content">
+    <h2 class="mb-4">Paramètres du Système et du Contrat</h2>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Gestion du Contrat et de la Sécurité</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-4">Adresse du Contrat (Contract Address):</dt>
+                <dd class="col-sm-8"><code id="contractAddressDisplay">0x...Chargement...</code> <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('contractAddressDisplay')">📋 Copier</button></dd>
+                <dt class="col-sm-4">Réseau Actuel (Network ID):</dt>
+                <dd class="col-sm-8" id="networkIdDisplay">N/A</dd>
+            </dl>
+            <hr>     
+            <h6>Transfert de Propriété (Ownership)</h6>
+            <p class="text-muted small">Transférer la propriété du contrat à une autre adresse de portefeuille.</p>
+            <div class="input-group">
+                <input type="text" class="form-control" id="newOwnerWallet" placeholder="Entrer la nouvelle adresse Admin (0x...)">
+                <button class="btn btn-danger" type="button" id="transferOwnershipBtn">Transférer la Propriété</button>
+            </div>
+            <small class="text-danger">Cette action est irréversible sur la Blockchain.</small>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Statut IPFS et Paramètres</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-4">Statut de Connexion IPFS:</dt>
+                <dd class="col-sm-8"><span id="ipfsStatusDetailed" class="badge bg-success">Opérationnel</span></dd>
+                <dt class="col-sm-4">Nombre de Dossiers (Hashes) stockés:</dt>
+                <dd class="col-sm-8" id="ipfsTotalHashes">0</dd>
+            </dl>
+            <button class="btn btn-outline-warning mt-3" type="button" id="ipfsReconnectBtn">Reconnexion IPFS</button>
+        </div>
+    </div>
+</div>
+  </main>
+  <div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-body">
+          <p id="confirmText">Êtes-vous sûr ?</p>
+          <div class="d-flex justify-content-end">
+            <button class="btn btn-secondary me-2" data-bs-dismiss="modal">Annuler</button>
+            <button id="confirmYesBtn" class="btn btn-danger">Confirmer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <script type="module" src="js/web3.js"></script>
+  <script type="module" src="js/config.js"></script>
+  <script type="module" src="js/admin.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="modal fade" id="editDoctorModal" tabindex="-1" aria-labelledby="editDoctorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDoctorModalLabel">Modifier Docteur: <span id="editDocNameDisplay"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editDocWalletHidden"> <div class="mb-3">
+                    <label for="editDocAge" class="form-label">Âge</label>
+                    <input type="number" class="form-control" id="editDocAge" min="25" max="65">
+                </div>    
+                <div class="mt-3">
+                    <small class="text-muted">ID: <span id="editDocIdDisplay">--</span> | Wallet: <code class="small" id="editDocWalletDisplay">--</code></small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="btnSaveDoctorChanges">Enregistrer les changements</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

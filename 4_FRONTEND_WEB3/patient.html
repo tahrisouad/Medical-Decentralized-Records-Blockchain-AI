@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espace Patient - SecureRecords</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --purple: #6f42c1;
+            --purple-light: #f0e7ff;
+            --bg-gray: #f8f9fa;
+        }
+        body {
+            background-color: var(--bg-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background: var(--purple);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .menu-card {
+            cursor: pointer;
+            border: none;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+        .menu-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(111, 66, 193, 0.15) !important;
+            border: 1px solid var(--purple) !important;
+        }
+        .menu-card img {
+            width: 100px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        .menu-card:hover img {
+            transform: scale(1.1);
+        }
+        .content-section {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .section-title {
+            color: var(--purple);
+            font-weight: bold;
+            border-left: 5px solid var(--purple);
+            padding-left: 15px;
+            margin-bottom: 25px;
+        }
+        .hash-display {
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            background: var(--purple-light);
+            padding: 12px;
+            border-radius: 10px;
+            color: var(--purple);
+            font-size: 0.9rem;
+        }
+        .btn-main {
+            background: var(--purple);
+            color: white;
+            border-radius: 8px;
+            padding: 10px 20px;
+            border: none;
+        }
+        .btn-main:hover {
+            background: #5936a0;
+            color: white;
+        }
+
+        .back-btn {
+            color: var(--purple);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark mb-5">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="#" onclick="backToMenu()">
+            <i class="fas fa-user-shield me-2"></i>
+            <strong>Patient Dashboard</strong>
+        </a>
+        <button class="btn btn-outline-light btn-sm" id="logoutBtn">Déconnexion</button>
+    </div>
+</nav>
+<div class="container"> 
+    <div id="main-menu" class="row g-4 justify-content-center">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Bonjour, <span id="welcomeName" class="text-purple">...</span></h2>
+            <p class="text-muted">Sélectionnez une option pour continuer</p>
+        </div>
+        <div class="col-md-5 col-lg-4">
+            <div class="card h-100 shadow-sm menu-card text-center p-4" onclick="showSection('profile-section')">
+                <div class="card-body">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" alt="Profile">
+                    <h3 class="h4 fw-bold">Mon Profil</h3>
+                    <p class="text-muted">Informations personnelles et adresse de compte</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5 col-lg-4">
+            <div class="card h-100 shadow-sm menu-card text-center p-4" onclick="showSection('record-section')">
+                <div class="card-body">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2966/2966327.png" alt="Dossier">
+                    <h3 class="h4 fw-bold">Mon Dossier Médical</h3>
+                    <p class="text-muted">Consulter mes diagnostics et mes traitements</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="profile-section" class="content-section d-none">
+        <div class="mb-4">
+            <span class="back-btn" onclick="backToMenu()"><i class="fas fa-arrow-left"></i> Retour au menu</span>
+        </div>
+        <h3 class="section-title">Mon Profil Personnel</h3>     
+        <div class="card shadow-sm border-0 p-4 rounded-4">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    <i class="fas fa-user-circle fa-5x text-purple opacity-25"></i>
+                </div>
+                <div class="col-md-10">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small">Nom complet</label>
+                            <p class="fw-bold fs-5 mb-0" id="patientName">---</p>
+                        </div>
+                        <div class="col-sm-3">
+                            <label class="text-muted small">Âge</label>
+                            <p class="fw-bold fs-5 mb-0"><span id="patientAge">---</span> ans</p>
+                        </div>
+                        <div class="col-sm-3">
+                            <label class="text-muted small">Sexe</label>
+                            <p class="fw-bold fs-5 mb-0" id="patientSex">---</p>
+                        </div>
+                        <div class="col-12 mt-3">
+                            <label class="text-muted small">Adresse MetaMask (Identifiant Blockchain)</label>
+                            <p class="text-break font-monospace" id="patientWallet">---</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="record-section" class="content-section d-none">
+        <div class="mb-4">
+            <span class="back-btn" onclick="backToMenu()"><i class="fas fa-arrow-left"></i> Retour au menu</span>
+        </div>
+        <h3 class="section-title">Rapport Médical & Preuves</h3>
+        <div id="record_content">
+            <div class="text-center py-5">
+                <div class="spinner-border text-purple" role="status"></div>
+                <p class="mt-2 text-muted">Récupération de vos données depuis IPFS...</p>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script type="module" src="js/web3.js"></script>
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/patient.js"></script>
+<script>
+    function showSection(sectionId) {
+        document.getElementById('main-menu').classList.add('d-none');
+        document.querySelectorAll('.content-section').forEach(s => s.classList.add('d-none'));
+        document.getElementById(sectionId).classList.remove('d-none');
+    }
+    function backToMenu() {
+        document.querySelectorAll('.content-section').forEach(s => s.classList.add('d-none'));
+        document.getElementById('main-menu').classList.remove('d-none');
+    }
+</script>
+</body>
+</html>

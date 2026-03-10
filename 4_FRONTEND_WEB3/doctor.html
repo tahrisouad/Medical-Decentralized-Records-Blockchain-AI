@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script> 
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Doctor — SecureRecords Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root{
+            --blue:#0d6efd;
+            --muted:#f5f7fa;
+            --card-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        }
+        body{
+            background:var(--muted);
+            font-family: "Segoe UI",sans-serif;
+        }
+        .sidebar {
+            width:240px;
+            position:fixed;
+            left:0;
+            top:0;
+            bottom:0;
+            background: #fff;
+            border-right:1px solid #eee;
+            padding:20px;
+            z-index: 1000;
+        }
+        .brand {font-weight:700; color:var(--blue); font-size:1.1rem;}
+        .sidebar .nav-link {
+            color:#444;
+            padding:10px 12px;
+            border-radius:5px;
+            margin-bottom:5px;
+            transition: all 0.2s;
+        }
+        .sidebar .nav-link.active, .sidebar .nav-link:hover {
+            background: var(--blue);
+            color: #fff !important;
+            font-weight:600;
+        }
+        .content {margin-left:260px; padding:24px;}
+        .content h2 {color: var(--blue); margin-bottom: 20px; font-weight: 600;}
+        .card {
+              border-radius: 15px;
+              box-shadow: var(--card-shadow);
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        }
+        .section-content {display:none; padding:20px 0;}
+        .section-content.active-section {display:block; animation: fadeIn 0.4s;}
+        @keyframes fadeIn { from {opacity:0; transform: translateY(10px);} to {opacity:1; transform: translateY(0);} }
+        .loader {display:none; position:fixed; right:20px; top:80px; z-index:2000;}
+        .small-muted{font-size:0.85rem;color:#666;}
+        .table-wrapper {
+              background:#fff;
+              padding:18px;
+              border-radius:12px;
+              box-shadow: none;
+        }
+        .table-wrapper table thead th {background-color: #f8f9fa;}
+        .table-wrapper table tbody tr:hover {background:#f1faff;}
+        @media (max-width:768px){
+            .sidebar {width:100%; position:relative; height:auto; padding-bottom: 10px;}
+            .content {margin-left:0; padding-top: 10px;}
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar d-flex flex-column">
+    <div class="mb-4">
+        <div class="brand">SecureRecords — Doctor</div>
+        <div class="small-muted mt-1">Dossiers et IA</div>
+    </div>
+    <nav class="nav flex-column">  
+        <a class="nav-link" href="#" data-section="dashboard-section" id="nav-dashboard"> 
+            <i class="fas fa-chart-line me-2"></i> Dashboard / Statistiques
+        </a>
+        <a class="nav-link active" href="#" data-section="profile-section" id="nav-profile"> 
+            <i class="fas fa-user-circle me-2"></i> Mon Profil
+        </a>   
+        <a class="nav-link" href="#" data-section="list-patients-section">
+            <i class="fas fa-users me-2"></i> Liste des Patients
+        </a>
+        <a class="nav-link" href="#" data-section="add-patient-section">
+            <i class="fas fa-user-plus me-2"></i> Ajouter Patient
+        </a>
+        <a class="nav-link" href="#" data-section="ia-analysis-section" id="analyse-ia-dossier-link"> <i class="fas fa-heartbeat me-2"></i> Analyse IA & Dossier
+        </a>
+        <hr>
+        <div class="small-muted">Docteur Wallet:</div>
+        <code id="doctorAddress" class="small text-truncate" style="max-width:200px;display:block">Chargement...</code>
+        <button id="logoutBtn" class="btn btn-sm btn-outline-secondary mt-2">Déconnexion</button>
+    </nav>
+</aside>
+    <main class="content">
+        <div id="loader" class="loader">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+        </div>
+        <div id="dashboard-section" class="section-content" style="display: none;">
+            <div class="container-fluid">
+                <h2 class="section-title"><i class="fas fa-chart-line me-2"></i> Dashboard / Statistiques</h2>
+                <p class="section-description">Analyse complète des risques cliniques et de l'activité du système.</p>
+                <hr>
+                <div class="row mb-5">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Distribution des Risques Actuels (IA)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="riskDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>                  
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Risques par Âge ou Sexe (À implémenter)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="riskByAgeSexChart"></canvas>
+                                <p class="text-muted small mt-2">Ce graphique nécessite une logique d'agrégation de données IPFS plus complexe.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>       
+        <div id="profile-section" class="section-content active-section"> 
+            <h2>Mon Profil</h2>
+            <div class="card shadow-sm p-4">
+                <p class="text-muted">Informations personnelles et professionnelles enregistrées sur la Blockchain.</p>              
+                <dl class="row">
+                    <dt class="col-sm-3">ID Docteur:</dt>
+                    <dd class="col-sm-9"><strong id="docProfileId">Chargement...</strong></dd>
+                    <dt class="col-sm-3">Nom:</dt>
+                    <dd class="col-sm-9"><strong id="docProfileName">Chargement...</strong></dd>
+                    <dt class="col-sm-3">Spécialité:</dt>
+                    <dd class="col-sm-9"><strong id="docProfileSpecialty">Cardiologie</strong></dd> <dt class="col-sm-3">Adresse Wallet:</dt>
+                    <dd class="col-sm-9"><code id="docProfileWallet">Chargement...</code></dd>
+                    <dt class="col-sm-3">Statut (Admin):</dt>
+                    <dd class="col-sm-9"><span id="docProfileStatus" class="badge bg-secondary">Chargement...</span></dd>
+                </dl>              
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary" id="btnViewDoctorInfo">Actualiser Profil</button>
+                </div>
+            </div>
+        </div>
+        <div id="list-patients-section" class="section-content">
+            <h2>Liste des Patients</h2>
+            <div class="card shadow-sm p-4">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="patientsTable">
+                        <thead class="table-dark"> <tr>
+                                <th>#</th>
+                                <th>Nom</th>
+                                <th>Âge</th>
+                                <th>Sexe</th>
+                                <th>Adresse MetaMask</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsTableBody">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="add-patient-section" class="section-content">
+            <h2>Ajouter un Nouveau Patient</h2>
+            <div class="card shadow-sm p-4">
+                <p class="text-muted">Enregistrez un nouveau patient dans le système SecureRecords.</p>              
+                <form id="addPatientForm"> 
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="patientName" class="form-label">Nom</label>
+                            <input type="text" id="patientName" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="patientAge" class="form-label">Âge</label>
+                            <input type="number" id="patientAge" class="form-control" required min="1" max="120">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="patientSex" class="form-label">Sexe</label>
+                            <select id="patientSex" class="form-select" required>
+                                <option value="Homme">Homme</option>
+                                <option value="Femme">Femme</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mt-3">
+                            <label for="patientAddress" class="form-label fw-bold">Adresse MetaMask du Patient</label>
+                            <input type="text" id="patientAddress" class="form-control" placeholder="0x123..." required>
+                        </div>
+
+                        <div class="col-md-12 text-end mt-4">
+                            <button class="btn btn-primary" type="submit" id="btnAddPatient">
+                                <i class="fas fa-plus-circle me-2"></i> Ajouter Patient
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div id="ia-analysis-section" class="section-content">
+            <h2>Analyse du Risque Cardiaque (IA)</h2>
+            <div class="card shadow-sm p-4">
+                <p class="text-muted">Effectuez une analyse prédictive et stockez le Hash du dossier sur IPFS puis sur la Blockchain.</p>
+                
+                <form id="aiAnalysisForm" class="row g-3">
+                    <div class="col-md-12 mb-3">
+                        <label for="input_patient_wallet" class="fw-bold">Adresse du Patient à Analyser</label>
+                        <input type="text" 
+        class="form-control" 
+        id="input_patient_wallet" 
+        placeholder="0x123..." 
+        required
+        onblur="window.loadPatientDataForAnalysis(this.value)">
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="input_age">Âge</label>
+                            <input type="number" class="form-control" id="input_age" placeholder="Ex: 60" required min="18" max="100" readonly> 
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_sex">Sexe (1/0)</label>
+                            <select class="form-select" id="input_sex" required disabled>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="1">1 (Homme)</option>
+                                <option value="0">0 (Femme)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_cp">CP (0-3)</label>
+                            <select class="form-select" id="input_cp" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_trestbps">Trestbps (mmHg)</label>
+                            <input type="number" class="form-control" id="input_trestbps" placeholder="Pression au repos" required min="90" max="200">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_chol">Cholestérol</label>
+                            <input type="number" class="form-control" id="input_chol" placeholder="Ex: 250" required min="80" max="600">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_fbs">FBS (Glycémie 1/0)</label>
+                            <select class="form-select" id="input_fbs" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="1">1 (Oui: > 120 mg/dl)</option>
+                                <option value="0">0 (Non)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_restecg">RestECG (0-2)</label>
+                            <select class="form-select" id="input_restecg" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_thalach">Thalach</label>
+                            <input type="number" class="form-control" id="input_thalach" placeholder="Fréquence cardiaque max" required min="60" max="220">
+                        </div>                
+                        <div class="col-md-3">
+                            <label for="input_exang">Exang (1/0)</label>
+                            <select class="form-select" id="input_exang" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="1">1 (Oui)</option>
+                                <option value="0">0 (Non)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_oldpeak">Oldpeak</label>
+                            <input type="number" min="0" max="6.2" step="0.1" class="form-control" id="input_oldpeak" placeholder="Dépression ST" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="input_slope">Slope (0-2)</label>
+                            <select class="form-select" id="input_slope" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                            <div class="col-md-2">
+                            <label for="input_ca">CA (0-3)</label>
+                            <select class="form-select" id="input_ca" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label for="input_thal">Thal (0-3)</label>
+                            <select class="form-select" id="input_thal" required>
+                                <option value="" disabled selected>Choisir...</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-12 text-end mt-4">
+                        <button type="submit" id="btnRunAIAnalysis" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i> Lancer l'Analyse & Mettre à Jour
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>  
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            const sections = document.querySelectorAll('.section-content');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();        
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');                   
+                    const targetSectionId = this.getAttribute('data-section');
+                    sections.forEach(section => {
+                        section.classList.remove('active-section');
+                    });
+                    document.getElementById(targetSectionId).classList.add('active-section');
+                });
+            });
+        });
+    </script>
+<div class="modal fade" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="genericModalLabel">Modifier les informations du patient</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="genericModalBody">
+        </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="traitementModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Diagnostic & Traitement du Patient</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Diagnostic médical</label>
+          <textarea
+            id="docDiagnostic"
+            class="form-control"
+            rows="3"
+            placeholder="Écrivez le diagnostic dans un langage que le patient peut comprendre"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Traitement</label>
+          <textarea
+            id="docTraitement"
+            class="form-control"
+            rows="3"
+            placeholder="Écrivez le traitement suggéré"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Recommandations</label>
+          <textarea
+            id="docReco"
+            class="form-control"
+            rows="2"
+            placeholder="Conseils aux patients (régime alimentaire, repos...)"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          annulation
+        </button>
+        <button class="btn btn-primary" onclick="saveTraitement()">
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/ipfs-http-client@50.1.2/dist/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+<script type="module" src="js/web3.js"></script>
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/doctor.js"></script>
+</body>
+</html>

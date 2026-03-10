@@ -1,0 +1,18 @@
+# Blockchain storage
+blockchain_storagee/
+
+# Truffle build
+3_SMART_CONTRACT_TRUFFLE/build/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# AI models
+*.pkl
+
+# environment variables
+.env
